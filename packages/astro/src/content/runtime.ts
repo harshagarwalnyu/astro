@@ -510,7 +510,10 @@ export function updateImageReferencesInData<T extends Record<string, unknown>>(
 	fileName?: string,
 	imageAssetMap?: Map<string, ImageMetadata>,
 ): T {
-	return new Traverse(data).map(function (ctx, val) {
+	// Use forEach instead of map to avoid neotraverse's immutable deep-clone,
+	// which breaks Map/Set objects by creating copies via Object.create()
+	// without the required internal slots (e.g. [[MapData]], [[SetData]]).
+	new Traverse(data).forEach(function (ctx, val) {
 		if (typeof val === 'string' && val.startsWith(IMAGE_IMPORT_PREFIX)) {
 			const src = val.replace(IMAGE_IMPORT_PREFIX, '');
 
@@ -544,6 +547,7 @@ export function updateImageReferencesInData<T extends Record<string, unknown>>(
 			}
 		}
 	});
+	return data;
 }
 
 export async function renderEntry(entry: DataEntry) {

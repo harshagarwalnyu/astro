@@ -76,6 +76,49 @@ describe('updateImageReferencesInData', () => {
 		assert.deepEqual(result, data);
 	});
 
+	it('preserves Map objects in data without breaking their methods', () => {
+		const data = {
+			title: 'Post',
+			tags: new Map([
+				['lang', 'en'],
+				['category', 'blog'],
+			]),
+		};
+		const result = updateImageReferencesInData(data, FILE_NAME, new Map());
+		assert.ok(result.tags instanceof Map, 'tags should still be a Map instance');
+		assert.equal(result.tags.get('lang'), 'en');
+		assert.equal(result.tags.get('category'), 'blog');
+		assert.equal(result.tags.size, 2);
+	});
+
+	it('preserves Set objects in data without breaking their methods', () => {
+		const data = {
+			title: 'Post',
+			categories: new Set(['blog', 'tutorial', 'astro']),
+		};
+		const result = updateImageReferencesInData(data, FILE_NAME, new Map());
+		assert.ok(result.categories instanceof Set, 'categories should still be a Set instance');
+		assert.ok(result.categories.has('blog'));
+		assert.ok(result.categories.has('tutorial'));
+		assert.ok(result.categories.has('astro'));
+		assert.equal(result.categories.size, 3);
+	});
+
+	it('preserves Map and Set alongside image resolution', () => {
+		const data = {
+			image: `${IMAGE_PREFIX}./hero.png`,
+			tags: new Map([['lang', 'en']]),
+			categories: new Set(['blog']),
+		};
+		const map = makeImageMap('./hero.png', heroMeta);
+		const result = updateImageReferencesInData(data, FILE_NAME, map);
+		assert.deepEqual(result.image, heroMeta);
+		assert.ok(result.tags instanceof Map);
+		assert.equal(result.tags.get('lang'), 'en');
+		assert.ok(result.categories instanceof Set);
+		assert.ok(result.categories.has('blog'));
+	});
+
 	it('resolves multiple different images in the same entry', () => {
 		const thumbMeta: ImageMetadata = {
 			src: '/_astro/thumb.xyz.png',
