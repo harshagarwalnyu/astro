@@ -278,7 +278,7 @@ describe('getImage', () => {
 			assert.equal(result.attributes.position, undefined);
 		});
 
-		it('includes object-position in style attribute when position is provided', async () => {
+		it('sets data-astro-image-pos attribute when position is provided', async () => {
 			const result = await renderImage({
 				src: 'https://example.com/photo.jpg',
 				width: 300,
@@ -288,10 +288,16 @@ describe('getImage', () => {
 				position: 'left top',
 			});
 
-			assert.match(result.attributes.style, /object-position:\s*left top/);
+			// Position should be set via data attribute (CSP-compliant), not inline style
+			assert.equal(result.attributes['data-astro-image-pos'], 'left-top');
+			// No inline style for object-position should be added
+			const style = result.attributes.style;
+			if (style && typeof style === 'string') {
+				assert.ok(!style.includes('object-position'), 'Should not have inline object-position style');
+			}
 		});
 
-		it('merges position into existing style object without overwriting', async () => {
+		it('does not add object-position to existing style when position is provided', async () => {
 			const result = await renderImage({
 				src: 'https://example.com/photo.jpg',
 				width: 300,
@@ -302,10 +308,35 @@ describe('getImage', () => {
 				style: { color: 'red' },
 			});
 
-			assert.deepStrictEqual(result.attributes.style, {
-				color: 'red',
-				objectPosition: 'top right',
+			// User-provided style should be preserved without objectPosition injection
+			assert.deepStrictEqual(result.attributes.style, { color: 'red' });
+			// Position should be via data attribute
+			assert.equal(result.attributes['data-astro-image-pos'], 'top-right');
+		});
+	});
+
+	describe('CSP compliance', () => {
+		it('does not add inline style for default position (center) - fixes #16656', async () => {
+			const result = await renderImage({
+				src: 'https://example.com/photo.jpg',
+				width: 300,
+				height: 400,
+				alt: 'CSP test',
+				layout: 'constrained',
+				position: 'center',
 			});
+
+			// The data attribute should be set for CSS targeting
+			assert.equal(result.attributes['data-astro-image-pos'], 'center');
+			// No inline style should be set for position (violates CSP)
+			const style = result.attributes.style;
+			if (style) {
+				if (typeof style === 'string') {
+					assert.ok(!style.includes('object-position'), 'Inline style should not contain object-position (CSP violation)');
+				} else if (typeof style === 'object') {
+					assert.ok(!('objectPosition' in style), 'Style object should not contain objectPosition (CSP violation)');
+				}
+			}
 		});
 	});
 

@@ -46,3 +46,13 @@ ${defaultFitStyle}
 ${positionStyle}
 `.trim();
 }
+
+/**
+ * Generate minimal CSS for image position styling without the full responsive image styles.
+ * This is used when `responsiveStyles` is disabled but a layout is still used,
+ * ensuring object-position works via data attributes instead of inline styles (CSP-compliant).
+ */
+export function generateImagePositionCSS(objectPosition: string): string {
+	const normalizedPos = objectPosition.replace(/\s+/g, '-');
+	return `[data-astro-image-pos="${normalizedPos}"]{object-position:${objectPosition}}`
+}

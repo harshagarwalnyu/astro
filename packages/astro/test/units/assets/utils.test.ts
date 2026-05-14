@@ -268,3 +268,27 @@ describe('dropAttributes', () => {
 	});
 });
 // #endregion
+
+// #region generateImagePositionCSS
+import { generateImagePositionCSS } from '../../../dist/assets/utils/generateImageStylesCSS.js';
+
+describe('generateImagePositionCSS', () => {
+	it('generates CSS rule for single-word position', () => {
+		const css = generateImagePositionCSS('center');
+		assert.ok(css.includes('[data-astro-image-pos="center"]'));
+		assert.ok(css.includes('object-position:center'));
+	});
+
+	it('normalizes spaces to dashes in data attribute selector', () => {
+		const css = generateImagePositionCSS('left top');
+		assert.ok(css.includes('[data-astro-image-pos="left-top"]'));
+		assert.ok(css.includes('object-position:left top'));
+	});
+
+	it('handles percentage values', () => {
+		const css = generateImagePositionCSS('50% 25%');
+		assert.ok(css.includes('[data-astro-image-pos="50%-25%"]'));
+		assert.ok(css.includes('object-position:50% 25%'));
+	});
+});
+// #endregion

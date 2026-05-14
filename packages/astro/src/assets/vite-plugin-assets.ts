@@ -18,10 +18,12 @@ import { isAstroServerEnvironment } from '../environments.js';
 import type { AstroSettings } from '../types/astro.js';
 import {
 	RESOLVED_VIRTUAL_GET_IMAGE_ID,
+	RESOLVED_VIRTUAL_IMAGE_POSITION_STYLES_ID,
 	RESOLVED_VIRTUAL_IMAGE_STYLES_ID,
 	RESOLVED_VIRTUAL_MODULE_ID,
 	VALID_INPUT_FORMATS,
 	VIRTUAL_GET_IMAGE_ID,
+	VIRTUAL_IMAGE_POSITION_STYLES_ID,
 	VIRTUAL_IMAGE_STYLES_ID,
 	VIRTUAL_MODULE_ID,
 	VIRTUAL_SERVICE_ID,
@@ -215,7 +217,7 @@ export default function assets({ fs, settings, sync, logger }: Options): vite.Pl
 						code: `
 				import { getConfiguredImageService as _getConfiguredImageService } from "astro/assets";
 				export { isLocalService } from "astro/assets";
-				${settings.config.image.responsiveStyles ? `import "${VIRTUAL_IMAGE_STYLES_ID}";` : ''}
+				${settings.config.image.responsiveStyles ? `import "${VIRTUAL_IMAGE_STYLES_ID}";` : `import "${VIRTUAL_IMAGE_POSITION_STYLES_ID}";`}
 					export { default as Image } from "astro/components/${imageComponentPrefix}Image.astro";
 					export { default as Picture } from "astro/components/${imageComponentPrefix}Picture.astro";
 					import { inferRemoteSize as inferRemoteSizeInternal } from "astro/assets/utils/inferRemoteSize.js";
@@ -439,6 +441,37 @@ export default function assets({ fs, settings, sync, logger }: Options): vite.Pl
 							settings.config.image.objectFit,
 							settings.config.image.objectPosition,
 						);
+						return { code: css };
+					}
+				},
+			},
+		},
+		{
+			name: 'astro:image-position-styles',
+			resolveId: {
+				filter: {
+					id: new RegExp(`^${VIRTUAL_IMAGE_POSITION_STYLES_ID}$`),
+				},
+				handler(id) {
+					if (id === VIRTUAL_IMAGE_POSITION_STYLES_ID) {
+						return RESOLVED_VIRTUAL_IMAGE_POSITION_STYLES_ID;
+					}
+				},
+			},
+			load: {
+				filter: {
+					id: new RegExp(`^${RESOLVED_VIRTUAL_IMAGE_POSITION_STYLES_ID}$`),
+				},
+				async handler(id) {
+					if (id === RESOLVED_VIRTUAL_IMAGE_POSITION_STYLES_ID) {
+						const { generateImagePositionCSS } = await import(
+							'./utils/generateImageStylesCSS.js'
+						);
+						// Generate minimal CSS for the default position used by Image/Picture
+						// components. This is injected in the head as a <style> tag (hashed for
+						// CSP) instead of inline style attributes which violate CSP style-src.
+						const position = settings.config.image.objectPosition ?? 'center';
+						const css = generateImagePositionCSS(position);
 						return { code: css };
 					}
 				},
